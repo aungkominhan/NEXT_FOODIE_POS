@@ -1,0 +1,164 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Companies {
+  id         Int         @id @default(autoincrement())
+  name       String
+  address       String
+  isArchived Boolean     @default(false)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @default(now()) @updatedAt
+  Users      Users[]
+  Locations  Locations[]
+}
+
+model Users {
+  id         Int       @id @default(autoincrement())
+  name       String?
+  email      String    @unique
+  companyId  Int
+  company    Companies @relation(fields: [companyId], references: [id])
+  isArchived Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+}
+
+model Locations {
+  id                           Int                            @id @default(autoincrement())
+  name                         String
+  address                      String
+  tables                       Tables[]
+  companyId                    Int
+  company                      Companies                      @relation(fields: [companyId], references: [id])
+  isArchived                   Boolean                        @default(false)
+  createdAt                    DateTime                       @default(now())
+  updatedAt                    DateTime                       @default(now()) @updatedAt
+  MenusMenuCategoriesLocations MenusMenuCategoriesLocations[]
+  Orders                       Orders[]
+}
+
+model Tables {
+  id         Int       @id @default(autoincrement())
+  name       String
+  assetUrl String?
+  locationId Int
+  locations  Locations @relation(fields: [locationId], references: [id])
+  isArchived Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+  Orders     Orders[]
+}
+
+model Menus {
+  id                           Int                            @id @default(autoincrement())
+  name                         String
+  price                        Int
+  assetUrl                     String?
+  isArchived                   Boolean                        @default(false)
+  createdAt                    DateTime                       @default(now())
+  updatedAt                    DateTime                       @default(now()) @updatedAt
+  MenusAddonCategories         MenusAddonCategories[]
+  MenusMenuCategoriesLocations MenusMenuCategoriesLocations[]
+  Orderlines                   Orderlines[]
+}
+
+model MenuCategories {
+  id                           Int                            @id @default(autoincrement())
+  name                         String
+  isArchived                   Boolean                        @default(false)
+  createdAt                    DateTime                       @default(now())
+  updatedAt                    DateTime                       @default(now()) @updatedAt
+  MenusMenuCategoriesLocations MenusMenuCategoriesLocations[]
+}
+
+model MenusAddonCategories {
+  id              Int             @id @default(autoincrement())
+  menuId          Int
+  menus           Menus           @relation(fields: [menuId], references: [id])
+  addonCategoryId Int
+  addonCategories AddonCategories @relation(fields: [addonCategoryId], references: [id])
+  isArchived      Boolean         @default(false)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @default(now()) @updatedAt
+}
+
+model MenusMenuCategoriesLocations {
+  id             Int            @id @default(autoincrement())
+  menuId         Int?
+  menus          Menus?          @relation(fields: [menuId], references: [id])
+  menuCategoryId Int
+  menuCategories MenuCategories @relation(fields: [menuCategoryId], references: [id])
+  locationId     Int?
+  locations      Locations?      @relation(fields: [locationId], references: [id])
+  isArchived     Boolean        @default(false)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @default(now()) @updatedAt
+}
+
+model AddonCategories {
+  id                   Int                    @id @default(autoincrement())
+  name                 String
+  isRequired           Boolean                @default(false)
+  addons               Addons[]
+  isArchived           Boolean                @default(false)
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @default(now()) @updatedAt
+  MenusAddonCategories MenusAddonCategories[]
+}
+
+model Addons {
+  id              Int             @id @default(autoincrement())
+  name            String
+  price           Int
+  isAvailable     Boolean?        @default(true)
+  addonCategoryId Int
+  addonCategories AddonCategories @relation(fields: [addonCategoryId], references: [id])
+  isArchived      Boolean         @default(false)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @default(now()) @updatedAt
+  Orderlines      Orderlines[]
+}
+
+model Orders {
+  id         Int          @id @default(autoincrement())
+  locationId Int
+  tableId    Int
+  isPaid     Boolean      @default(false)
+  price      Int?         @default(0)
+  locations  Locations    @relation(fields: [locationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  tables     Tables       @relation(fields: [tableId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  orderlines Orderlines[]
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @default(now()) @updatedAt
+}
+
+model Orderlines {
+  id           Int         @id @default(autoincrement())
+  orderId      Int
+  menuId       Int
+  addonId      Int?
+  itemId       String
+  quantity     Int         @default(1)
+  status OrderStatus @default(PENDING)
+  orders       Orders      @relation(fields: [orderId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  menus        Menus       @relation(fields: [menuId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  addons       Addons?     @relation(fields: [addonId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @default(now()) @updatedAt
+}
+
+enum OrderStatus {
+  PENDING
+  PREPARING
+  COMPLETE
+  REJECTED
+}
